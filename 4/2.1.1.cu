@@ -4,6 +4,7 @@
 // macros:
 #define widthField 2
 #define precisionField 0
+#define SHOW_FUNCTION_CALLS 1
 struct Matrix;
 __global__ void init_GPU (double *p, int rows, int cols);
 __global__ void mul_GPU (double *m1, double *m2, double *p, int rows, int x, int cols);
@@ -25,7 +26,9 @@ struct Matrix
     }
     Matrix (const Matrix &M)
     {
+        #if SHOW_FUNCTION_CALLS == 1
         printf ("\033[90mMatrix (const Matrix &M)\033[m\n");
+        #endif
         rows = M.rows;
         cols = M.cols;
         cudaMalloc (&device_pointer, rows * cols * sizeof (double));
@@ -36,7 +39,9 @@ struct Matrix
     }
     Matrix (Matrix &&M)
     {
+        #if SHOW_FUNCTION_CALLS == 1
         printf ("\033[90mMatrix (const Matrix &&M)\033[m\n");
+        #endif
         rows = M.rows;
         cols = M.cols;
         device_pointer = M.device_pointer;
@@ -48,7 +53,9 @@ struct Matrix
     }
     Matrix operator = (Matrix &M)
     {
+        #if SHOW_FUNCTION_CALLS == 1
         printf ("\033[90mMatrix operator = (Matrix &M)\033[m\n");
+        #endif
         clear ();
         rows = M.rows;
         cols = M.cols;
@@ -60,7 +67,9 @@ struct Matrix
     }
     Matrix operator = (Matrix &&M)
     {
+        #if SHOW_FUNCTION_CALLS == 1
         printf ("\033[90mMatrix operator = (Matrix &&M)\033[m\n");
+        #endif
         rows = M.rows;
         cols = M.cols;
         device_pointer = M.device_pointer;
@@ -71,7 +80,9 @@ struct Matrix
     }
     ~Matrix ()
     {
+        #if SHOW_FUNCTION_CALLS == 1
         printf ("\033[90m~Matrix () : %p, %p\033[m\n", device_pointer, host_pointer);
+        #endif
         if (NULL != device_pointer)
         {
             cudaFree (device_pointer);
@@ -175,7 +186,7 @@ struct Matrix
         mul_GPU <<< block, grid>>> (device_pointer, M.device_pointer, p.device_pointer, rows, cols, M.cols);
         cudaDeviceSynchronize ();
         p.device2host ();
-        p.display ();
+        // p.display ();
         return p;
     }
 };
@@ -255,15 +266,17 @@ int main ()
     // int ny = Width;
     // int nxy = nx * ny;
     Matrix A (2, 8), B (8, 8);
-    A.init ();
-    printf ("Matrix A:\n");
+    A.init (), B.init ();
+    printf ("\033[4mMatrix A:\033[m\n");
     A.display ();
     // printf ("-----------------\n");
-    B.init ();
+    // B.init ();
+    printf ("\033[4mMatrix B:\033[m\n");
     B.display ();
     // printf ("-----------------\n");
     Matrix C = A * B;
-    // C.display ();
+    printf ("\033[4mMatrix C:\033[m\n");
+    C.display ();
     // C.display ();
     // allocate_Matrix (&A, 4, 8);
     // transfer_Matrix_h2d (A);
