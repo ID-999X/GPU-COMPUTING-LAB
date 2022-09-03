@@ -1,1 +1,5 @@
+# ignore the following:
 *.vscode
+*.exe
+*.lib
+*.exp
