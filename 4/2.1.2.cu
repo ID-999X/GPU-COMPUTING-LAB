@@ -8,6 +8,7 @@
 struct Matrix;
 __global__ void init_GPU (double *p, int rows, int cols);
 __global__ void mul_GPU (double *m1, double *m2, double *p, int rows, int x, int cols);
+__global__ void trs_GPU (double *m1, double *m2, int rows, int cols);
 struct Matrix
 {
     int rows, cols;
@@ -40,7 +41,7 @@ struct Matrix
     Matrix (Matrix &&M)
     {
         #if SHOW_FUNCTION_CALLS == 1
-        printf ("\033[90mMatrix (const Matrix &&M)\033[m\n");
+        printf ("\033[90mMatrix (Matrix &&M)\033[m\n");
         #endif
         rows = M.rows;
         cols = M.cols;
@@ -124,7 +125,7 @@ struct Matrix
         {
             for (int j = 0; j < cols; j++)
             {
-                printf ("\033[31m%*.*lf\033[m ", widthField, precisionField, host_pointer[i * cols + j]);
+                printf ("%*.*lf ", widthField, precisionField, host_pointer[i * cols + j]);
             }
             printf ("\n");
         }
@@ -270,20 +271,20 @@ int main ()
     // int nx = Width;
     // int ny = Width;
     // int nxy = nx * ny;
-    Matrix A (4, 4), B (4, 4), C (4, 4);
-    A.init (), B.init (), C.init ();
-    printf ("\033[1;4;31mMatrix A:\033[m\n");
-    A.display ();
-    // printf ("-----------------\n");
-    // B.init ();
-    printf ("\033[1;4;31mMatrix B:\033[m\n");
-    B.display ();
-    // printf ("-----------------\n");
-    printf ("\033[1;4;31mMatrix C:\033[m\n");
-    C.display ();
-    Matrix D = A * B * C;
-    printf ("\033[1;4;31mMatrix D:\033[m\n");
-    D.display ();
+    // Matrix A (4, 4), B (4, 4), C (4, 4);
+    // A.init (), B.init (), C.init ();
+    // printf ("\033[1;4;31mMatrix A:\033[m\n");
+    // A.display ();
+    // // printf ("-----------------\n");
+    // // B.init ();
+    // printf ("\033[1;4;31mMatrix B:\033[m\n");
+    // B.display ();
+    // // printf ("-----------------\n");
+    // printf ("\033[1;4;31mMatrix C:\033[m\n");
+    // C.display ();
+    // Matrix D = A * B * C;
+    // printf ("\033[1;4;31mMatrix D:\033[m\n");
+    // D.display ();
 
     // C.display ();
     // allocate_Matrix (&A, 4, 8);

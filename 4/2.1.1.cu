@@ -40,7 +40,7 @@ struct Matrix
     Matrix (Matrix &&M)
     {
         #if SHOW_FUNCTION_CALLS == 1
-        printf ("\033[90mMatrix (const Matrix &&M)\033[m\n");
+        printf ("\033[90mMatrix (Matrix &&M)\033[m\n");
         #endif
         rows = M.rows;
         cols = M.cols;
@@ -124,7 +124,7 @@ struct Matrix
         {
             for (int j = 0; j < cols; j++)
             {
-                printf ("\033[31m%*.*lf\033[m ", widthField, precisionField, host_pointer[i * cols + j]);
+                printf ("%*.*lf ", widthField, precisionField, host_pointer[i * cols + j]);
             }
             printf ("\n");
         }
