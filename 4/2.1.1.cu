@@ -2,7 +2,7 @@
 #include <cuda_runtime.h>
 
 // macros:
-#define widthField 2
+#define widthField 4
 #define precisionField 0
 #define SHOW_FUNCTION_CALLS 1
 struct Matrix;
@@ -130,28 +130,28 @@ struct Matrix
         }
         return;
     }
-    void display (const Matrix &M)
-    {
-        if (cols == M.cols && rows == M.rows)
-        {
-            for (int i = 0; i < rows; i++)
-            {
-                // first matrix: 
-                for (int j = 0; j < cols; j++)
-                {
-                    printf (" %*.*lf ", widthField, precisionField, host_pointer[i * cols + j]);
-                }
-                printf (" |  "); // seperator
-                // second matrix: 
-                for (int j = 0; j < cols; j++)
-                {
-                    printf (" %*.*lf ", widthField, precisionField, M.host_pointer[i * cols + j]);
-                }
-                printf ("\n");
-            }
-        }
-        return;
-    }
+    // void display (const Matrix &M)
+    // {
+    //     if (cols == M.cols && rows == M.rows)
+    //     {
+    //         for (int i = 0; i < rows; i++)
+    //         {
+    //             // first matrix: 
+    //             for (int j = 0; j < cols; j++)
+    //             {
+    //                 printf ("%*.*lf ", widthField, precisionField, host_pointer[i * cols + j]);
+    //             }
+    //             printf (" |  "); // seperator
+    //             // second matrix: 
+    //             for (int j = 0; j < cols; j++)
+    //             {
+    //                 printf ("%*.*lf ", widthField, precisionField, M.host_pointer[i * cols + j]);
+    //             }
+    //             printf ("\n");
+    //         }
+    //     }
+    //     return;
+    // }
     void init ()
     {
         dim3 block (1, 1, 1);
@@ -265,7 +265,7 @@ int main ()
     // int nx = Width;
     // int ny = Width;
     // int nxy = nx * ny;
-    Matrix A (2, 8), B (8, 8);
+    Matrix A (4, 4), B (4, 4);
     A.init (), B.init ();
     printf ("\033[4mMatrix A:\033[m\n");
     A.display ();
