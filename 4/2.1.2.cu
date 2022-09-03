@@ -130,28 +130,6 @@ struct Matrix
         }
         return;
     }
-    // void display (const Matrix &M)
-    // {
-    //     if (cols == M.cols && rows == M.rows)
-    //     {
-    //         for (int i = 0; i < rows; i++)
-    //         {
-    //             // first matrix: 
-    //             for (int j = 0; j < cols; j++)
-    //             {
-    //                 printf ("%*.*lf ", widthField, precisionField, host_pointer[i * cols + j]);
-    //             }
-    //             printf (" |  "); // seperator
-    //             // second matrix: 
-    //             for (int j = 0; j < cols; j++)
-    //             {
-    //                 printf ("%*.*lf ", widthField, precisionField, M.host_pointer[i * cols + j]);
-    //             }
-    //             printf ("\n");
-    //         }
-    //     }
-    //     return;
-    // }
     void init ()
     {
         dim3 block (1, 1, 1);
@@ -189,6 +167,14 @@ struct Matrix
         // p.display ();
         return p;
     }
+    Matrix operator ~ ()
+    {
+        Matrix t (cols, rows);
+        dim3 block (1, 1, 1);
+        dim3 grid (rows, cols, 1);
+        trs_GPU <<<grid, block>>> (device_pointer, t.device_pointer, rows, cols);
+        t.D2H ();
+    }
 };
 
 __global__ void init_GPU (double *p, int rows, int cols)
@@ -222,6 +208,25 @@ __global__ void mul_GPU (double *m1, double *m2, double *p, int rows, int x, int
     }
     return;
 }
+__global__ void trs_GPU (double *m1, double *m2, int rows, int cols)
+{
+    int Row = blockIdx.x * blockDim.x + threadIdx.x;
+    int Col = blockIdx.y * blockDim.y + threadIdx.y;
+    if (Row < rows && Col < cols)
+    {
+        // printf ("{%d,%d}", Row, Col);
+        // double a = 0;
+        // for (int k = 0; k < x; k++)
+        // {
+        //     // printf ("(%.0f,%.0f)", m1[Row * cols + k], m2[k * rows + Col]);
+        //     a += m1[Row * x + k] * m2[k * cols + Col];
+        // }
+        m2[Col * rows + Row] = m1[Row * cols + Col];
+        // printf ("=<%f>\n", a);
+    }
+    return;
+}
+
 // void display_Matrix (Matrix M)
 // {
 //     int idx;
@@ -279,8 +284,6 @@ int main ()
     Matrix D = A * B * C;
     printf ("\033[1;4;31mMatrix D:\033[m\n");
     D.display ();
-    
-    cudaDeviceReset ();
 
     // C.display ();
     // allocate_Matrix (&A, 4, 8);
@@ -342,6 +345,7 @@ int main ()
     // free (h_C);
 
     // cudaDeviceReset ();
+    // warpSize
 
     return 0;
 
