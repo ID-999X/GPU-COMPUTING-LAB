@@ -71,7 +71,7 @@ struct Matrix
     }
     ~Matrix ()
     {
-        printf ("\033[90m~Matrix ()\033[m : %p, %p\n", device_pointer, host_pointer);
+        printf ("\033[90m~Matrix () : %p, %p\033[m\n", device_pointer, host_pointer);
         if (NULL != device_pointer)
         {
             cudaFree (device_pointer);
