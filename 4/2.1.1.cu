@@ -256,11 +256,12 @@ int main ()
     // int nxy = nx * ny;
     Matrix A (2, 8), B (8, 8);
     A.init ();
+    printf ("Matrix A:\n");
     A.display ();
-    printf ("-----------------\n");
+    // printf ("-----------------\n");
     B.init ();
     B.display ();
-    printf ("-----------------\n");
+    // printf ("-----------------\n");
     Matrix C = A * B;
     // C.display ();
     // C.display ();
