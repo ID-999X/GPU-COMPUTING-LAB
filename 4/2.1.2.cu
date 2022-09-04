@@ -2,7 +2,7 @@
 #include <cuda_runtime.h>
 
 // macros:
-#define widthField 0
+// #define widthField 0
 #define precisionField 0
 #define SHOW_FUNCTION_CALLS 1
 struct Matrix;
@@ -11,6 +11,7 @@ __global__ void mul_GPU (double *m1, double *m2, double *p, int rows, int x, int
 __global__ void trs_GPU (double *m1, double *m2, int rows, int cols);
 __global__ void add_GPU (double *m1, double *m2, double *a, int rows, int cols);
 __global__ void sub_GPU (double *m1, double *m2, double *a, int rows, int cols);
+void init (double *p, int rows, int cols);
 struct Matrix
 {
     int rows, cols;
@@ -155,7 +156,7 @@ struct Matrix
             for (size_t j = 0; j < rows; j++)
             {
                 str = (char *) malloc (BUFFER_SIZE * sizeof (char));
-                width = snprintf (str, BUFFER_SIZE, "%*.*lf", widthField, precisionField, host_pointer[j * cols + i]);
+                width = snprintf (str, BUFFER_SIZE, "%.*lf", precisionField, host_pointer[j * cols + i]);
                 str = (char *) realloc (str, ((size_t) (width + 1)) * sizeof (char));
                 mat_of_strs[j * cols + i] = str;
                 if (max_width_arr[i] < width)
@@ -185,14 +186,23 @@ struct Matrix
         free (max_width_arr);
         return;
     }
+    // void init ()
+    // {
+    //     dim3 block (1, 1, 1);
+    //     dim3 grid (rows, cols, 1);
+    //     init_GPU <<<grid, block>>> (device_pointer, rows, cols);
+    //     cudaDeviceSynchronize ();
+    //     // printf ("\033[31mhere\033[m");
+    //     D2H ();
+    //     // printf ("here");
+    //     return;
+    // }
     void init ()
     {
-        dim3 block (1, 1, 1);
-        dim3 grid (rows, cols, 1);
-        init_GPU <<<grid, block>>> (device_pointer, rows, cols);
-        cudaDeviceSynchronize ();
+        ::init (host_pointer, rows, cols);
+        // cudaDeviceSynchronize ();
         // printf ("\033[31mhere\033[m");
-        D2H ();
+        H2D ();
         // printf ("here");
         return;
     }
@@ -279,6 +289,14 @@ __global__ void init_GPU (double *p, int rows, int cols)
     }
     return;
 }
+void init (double *p, int rows, int cols)
+{
+    for (int i = 0; i < rows * cols; i++)
+    {
+        p[i] = rand () % 21 - 10;
+    }
+    return;
+}
 __global__ void add_GPU (double *m1, double *m2, double *a, int rows, int cols)
 {
     int Row = blockIdx.x * blockDim.x + threadIdx.x;
@@ -329,16 +347,27 @@ __global__ void trs_GPU (double *m1, double *m2, int rows, int cols)
 }
 int main ()
 {
-    Matrix A (3, 4), X (3, 4);
-    A.init (), X.init ();
-    Matrix B = ~A;
+    srand (time (NULL));
+    Matrix A (4, 4), B (4, 4);
+    A.init (), B.init ();
+    Matrix TA = ~A, TB = ~B;
     printf ("\033[4;31mMatrix A:\033[m\n");
     A.display ();
     printf ("\033[4;31mMatrix B:\033[m\n");
     B.display ();
-    Matrix C = A - X;
-    printf ("\033[4;31mMatrix C:\033[m\n");
-    C.display ();
+    printf ("\033[4;31mMatrix TA:\033[m\n");
+    TA.display ();
+    printf ("\033[4;31mMatrix TB:\033[m\n");
+    TB.display ();
+    Matrix PAB = A * B;
+    Matrix PTATB = TA * TB;
+    printf ("\033[4;31mMatrix PAB:\033[m\n");
+    PAB.display ();
+    printf ("\033[4;31mMatrix PTATB:\033[m\n");
+    PTATB.display ();
+    Matrix D = PAB - PTATB;
+    printf ("\033[4;31mMatrix D:\033[m\n");
+    D.display ();
     
     cudaDeviceReset ();
     return 0;
