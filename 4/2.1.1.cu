@@ -4,7 +4,7 @@
 // macros:
 #define widthField 0
 #define precisionField 0
-#define SHOW_FUNCTION_CALLS 0
+#define SHOW_FUNCTION_CALLS 1
 // __constant__ int SRAND_GPU = 1;
 struct Matrix;
 __global__ void init_GPU (double *p, int rows, int cols);
@@ -351,6 +351,7 @@ int main ()
     printf ("\033[1;4;31mMatrix C:\033[m\n");
     C.display ();
     Matrix D = A * B * C;
+    // 1 * 2;
     printf ("\033[1;4;31mMatrix D:\033[m\n");
     D.display ();
     
