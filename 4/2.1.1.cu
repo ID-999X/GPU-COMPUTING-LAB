@@ -2,9 +2,10 @@
 #include <cuda_runtime.h>
 
 // macros:
-#define widthField 6
+#define widthField 0
 #define precisionField 0
-#define SHOW_FUNCTION_CALLS 1
+#define SHOW_FUNCTION_CALLS 0
+// __constant__ int SRAND_GPU = 1;
 struct Matrix;
 __global__ void init_GPU (double *p, int rows, int cols);
 __global__ void mul_GPU (double *m1, double *m2, double *p, int rows, int x, int cols);
@@ -118,16 +119,68 @@ struct Matrix
         return;
     }
     // display works on host matrix
+    // void display ()
+    // {
+    //     for (int i = 0; i < rows; i++)
+    //     {
+    //         for (int j = 0; j < cols; j++)
+    //         {
+    //             printf ("%*.*lf ", widthField, precisionField, host_pointer[i * cols + j]);
+    //         }
+    //         printf ("\n");
+    //     }
+    //     return;
+    // }
     void display ()
     {
-        for (int i = 0; i < rows; i++)
+        if (NULL == host_pointer)
         {
-            for (int j = 0; j < cols; j++)
+            #if WARNINGS == 1
+            printf ("\nIn function \'\e[33mprint_matrix_yu\e[m\':\n\e[35mwarning:\e[m \'m\' is (null)\n");
+            #endif
+            return;
+        }
+        #define BUFFER_SIZE 128
+        // double (*mat)[cols] = (double (*)[cols]) (host_pointer);
+        int *max_width_arr = (int *) (malloc (cols * sizeof (int)));
+        char **mat_of_strs = (char **) malloc (rows * cols * sizeof (char *));
+        // char *(*matrix_of_strings)[c] = mat_of_strs;
+        char *str;
+        int width;
+        for (size_t i = 0; i < cols; i++)
+        {
+            max_width_arr[i] = 1;
+            for (size_t j = 0; j < rows; j++)
             {
-                printf ("%*.*lf ", widthField, precisionField, host_pointer[i * cols + j]);
+                str = (char *) malloc (BUFFER_SIZE * sizeof (char));
+                width = snprintf (str, BUFFER_SIZE, "%*.*lf", widthField, precisionField, host_pointer[j * cols + i]);
+                str = (char *) realloc (str, ((size_t) (width + 1)) * sizeof (char));
+                mat_of_strs[j * cols + i] = str;
+                if (max_width_arr[i] < width)
+                    max_width_arr[i] = width;
             }
+        }
+        for (size_t i = 0; i < rows; i++)
+        {
+            printf ("\033[1;32m\xb3\033[m");
+            for (size_t j = 0; j < cols; j++)
+            {
+                width = strlen (mat_of_strs[i * cols + j]);
+                for (int x = 0; x < max_width_arr[j] - width; x++)
+                    printf (" ");
+                printf ("%s", mat_of_strs[i * cols + j]);
+                if (j != (cols - 1))
+                    printf (" ");
+            }
+            printf ("\033[1;32m\xb3\033[m");
+            // newline:
             printf ("\n");
         }
+        for (size_t i = 0; i < rows; i++)
+            for (size_t j = 0; j < cols; j++)
+                free (mat_of_strs[i * cols + j]);
+        free (mat_of_strs);
+        free (max_width_arr);
         return;
     }
     // void display (const Matrix &M)
@@ -191,6 +244,14 @@ struct Matrix
     }
 };
 
+// __device__ int rand_GPU (int seed)
+// {
+//     static int i = 0x9f8c7b6a;
+//     // printf ("[%d];%p", SRAND_GPU, &SRAND_GPU);
+//     i += 0x12345678 * (seed + 1) + 1;
+//     return i;
+// }
+
 __global__ void init_GPU (double *p, int rows, int cols)
 {
     int r = threadIdx.x + blockIdx.x * blockDim.x; // x = rows
@@ -199,7 +260,7 @@ __global__ void init_GPU (double *p, int rows, int cols)
     if (r < rows && c < cols)
     {
         // printf ("<%d>", r * M.cols + c);
-        p[r * cols + c] = ((double) (r * cols + c));
+        p[r * cols + c] = ((double) (rand_GPU (r * cols + c) % 10));
         // printf ("%lf ", M.device_pointer[r * M.cols + c]);
     }
     return;
@@ -259,8 +320,21 @@ __global__ void mul_GPU (double *m1, double *m2, double *p, int rows, int x, int
 //     m->host_pointer = (double *) malloc (rows * cols * sizeof (double));
 //     return;
 // }
+void srand_GPU (int seed)
+{
+    // cudaMemcpy (&SRAND_GPU, &seed, sizeof (int), cudaMemcpyHostToDevice);
+    // cudaMemcpyFromSymbol ()
+    void *a = NULL;
+    // cudaGetSymbolAddress (&a, "SRAND_GPU");
+    // printf ("srand: %p\n", a);
+    // cudaError_t err = cudaMemcpyToSymbol ("SRAND_GPU", &seed, sizeof (int));
+    // printf ("\"%s\"", cudaGetErrorString (err));
+    return;
+}
 int main ()
 {
+    // SRAND_GPU = time (NULL);
+    // srand_GPU (time (NULL));
     // int Width = N;
     // int nx = Width;
     // int ny = Width;

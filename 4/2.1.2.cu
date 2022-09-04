@@ -2,13 +2,15 @@
 #include <cuda_runtime.h>
 
 // macros:
-#define widthField 6
+#define widthField 0
 #define precisionField 0
 #define SHOW_FUNCTION_CALLS 1
 struct Matrix;
 __global__ void init_GPU (double *p, int rows, int cols);
 __global__ void mul_GPU (double *m1, double *m2, double *p, int rows, int x, int cols);
 __global__ void trs_GPU (double *m1, double *m2, int rows, int cols);
+__global__ void add_GPU (double *m1, double *m2, double *a, int rows, int cols);
+__global__ void sub_GPU (double *m1, double *m2, double *a, int rows, int cols);
 struct Matrix
 {
     int rows, cols;
@@ -119,16 +121,68 @@ struct Matrix
         return;
     }
     // display works on host matrix
+    // void display ()
+    // {
+    //     for (int i = 0; i < rows; i++)
+    //     {
+    //         for (int j = 0; j < cols; j++)
+    //         {
+    //             printf ("%*.*lf ", widthField, precisionField, host_pointer[i * cols + j]);
+    //         }
+    //         printf ("\n");
+    //     }
+    //     return;
+    // }
     void display ()
     {
-        for (int i = 0; i < rows; i++)
+        if (NULL == host_pointer)
         {
-            for (int j = 0; j < cols; j++)
+            #if WARNINGS == 1
+            printf ("\nIn function \'\e[33mprint_matrix_yu\e[m\':\n\e[35mwarning:\e[m \'m\' is (null)\n");
+            #endif
+            return;
+        }
+        #define BUFFER_SIZE 128
+        // double (*mat)[cols] = (double (*)[cols]) (host_pointer);
+        int *max_width_arr = (int *) (malloc (cols * sizeof (int)));
+        char **mat_of_strs = (char **) malloc (rows * cols * sizeof (char *));
+        // char *(*matrix_of_strings)[c] = mat_of_strs;
+        char *str;
+        int width;
+        for (size_t i = 0; i < cols; i++)
+        {
+            max_width_arr[i] = 1;
+            for (size_t j = 0; j < rows; j++)
             {
-                printf ("%*.*lf ", widthField, precisionField, host_pointer[i * cols + j]);
+                str = (char *) malloc (BUFFER_SIZE * sizeof (char));
+                width = snprintf (str, BUFFER_SIZE, "%*.*lf", widthField, precisionField, host_pointer[j * cols + i]);
+                str = (char *) realloc (str, ((size_t) (width + 1)) * sizeof (char));
+                mat_of_strs[j * cols + i] = str;
+                if (max_width_arr[i] < width)
+                    max_width_arr[i] = width;
             }
+        }
+        for (size_t i = 0; i < rows; i++)
+        {
+            printf ("\033[1;32m\xb3\033[m");
+            for (size_t j = 0; j < cols; j++)
+            {
+                width = strlen (mat_of_strs[i * cols + j]);
+                for (int x = 0; x < max_width_arr[j] - width; x++)
+                    printf (" ");
+                printf ("%s", mat_of_strs[i * cols + j]);
+                if (j != (cols - 1))
+                    printf (" ");
+            }
+            printf ("\033[1;32m\xb3\033[m");
+            // newline:
             printf ("\n");
         }
+        for (size_t i = 0; i < rows; i++)
+            for (size_t j = 0; j < cols; j++)
+                free (mat_of_strs[i * cols + j]);
+        free (mat_of_strs);
+        free (max_width_arr);
         return;
     }
     void init ()
@@ -152,6 +206,38 @@ struct Matrix
         cudaMemcpy (host_pointer, device_pointer, cols * rows * sizeof (double), cudaMemcpyDeviceToHost);
         return;
     }
+    Matrix operator + (const Matrix &M)
+    {
+        if (rows != M.rows && cols != M.cols)
+        {
+            printf ("Matrix1 (%dX%d); Matrix2 (%dX%d)\n", rows, cols, M.rows, M.cols);
+            return Matrix ();
+        }
+        Matrix p (rows, M.cols);
+        dim3 block (1, 1, 1);
+        dim3 grid (rows, M.cols, 1);
+        add_GPU <<< block, grid>>> (device_pointer, M.device_pointer, p.device_pointer, rows, cols);
+        cudaDeviceSynchronize ();
+        p.D2H ();
+        // p.display ();
+        return p;
+    }
+    Matrix operator - (const Matrix &M)
+    {
+        if (rows != M.rows && cols != M.cols)
+        {
+            printf ("Matrix1 (%dX%d); Matrix2 (%dX%d)\n", rows, cols, M.rows, M.cols);
+            return Matrix ();
+        }
+        Matrix p (rows, M.cols);
+        dim3 block (1, 1, 1);
+        dim3 grid (rows, M.cols, 1);
+        sub_GPU <<< block, grid>>> (device_pointer, M.device_pointer, p.device_pointer, rows, cols);
+        cudaDeviceSynchronize ();
+        p.D2H ();
+        // p.display ();
+        return p;
+    }
     Matrix operator * (const Matrix &M)
     {
         if (cols != M.rows)
@@ -174,7 +260,9 @@ struct Matrix
         dim3 block (1, 1, 1);
         dim3 grid (rows, cols, 1);
         trs_GPU <<<grid, block>>> (device_pointer, t.device_pointer, rows, cols);
+        cudaDeviceSynchronize ();
         t.D2H ();
+        return t;
     }
 };
 
@@ -188,6 +276,26 @@ __global__ void init_GPU (double *p, int rows, int cols)
         // printf ("<%d>", r * M.cols + c);
         p[r * cols + c] = ((double) (r * cols + c));
         // printf ("%lf ", M.device_pointer[r * M.cols + c]);
+    }
+    return;
+}
+__global__ void add_GPU (double *m1, double *m2, double *a, int rows, int cols)
+{
+    int Row = blockIdx.x * blockDim.x + threadIdx.x;
+    int Col = blockIdx.y * blockDim.y + threadIdx.y;
+    if (Row < rows && Col < cols)
+    {
+        a[Row * cols + Col] = m1[Row * cols + Col] + m2[Row * cols + Col];
+    }
+    return;
+}
+__global__ void sub_GPU (double *m1, double *m2, double *a, int rows, int cols)
+{
+    int Row = blockIdx.x * blockDim.x + threadIdx.x;
+    int Col = blockIdx.y * blockDim.y + threadIdx.y;
+    if (Row < rows && Col < cols)
+    {
+        a[Row * cols + Col] = m1[Row * cols + Col] - m2[Row * cols + Col];
     }
     return;
 }
@@ -215,139 +323,23 @@ __global__ void trs_GPU (double *m1, double *m2, int rows, int cols)
     int Col = blockIdx.y * blockDim.y + threadIdx.y;
     if (Row < rows && Col < cols)
     {
-        // printf ("{%d,%d}", Row, Col);
-        // double a = 0;
-        // for (int k = 0; k < x; k++)
-        // {
-        //     // printf ("(%.0f,%.0f)", m1[Row * cols + k], m2[k * rows + Col]);
-        //     a += m1[Row * x + k] * m2[k * cols + Col];
-        // }
         m2[Col * rows + Row] = m1[Row * cols + Col];
-        // printf ("=<%f>\n", a);
     }
     return;
 }
-
-// void display_Matrix (Matrix M)
-// {
-//     int idx;
-//     for (int i = 0; i < M.rows; i++)
-//     {
-//         for (int j = 0; j < M.cols; j++)
-//         {
-//             idx = i * M.cols + j;
-//             printf (" %*.*lf ", widthField, precisionField, M.host_pointer[idx]);
-//         }
-//         printf ("\n");
-//     }
-// }
-// __device__ int random_int ()
-// {
-//     static int i = 12345678;
-//     i *= 0xf9f9f9f9, i++;
-//     return i;
-// }
-
-// void initialize_Matrix (Matrix M)
-// {
-//     dim3 block (1, 1, 1);
-//     dim3 grid (M.rows, M.cols, 1);
-//     initialize_Matrix_GPU <<<grid, block>>> (M);
-//     cudaDeviceSynchronize ();
-//     return;
-// }
-
-// void allocate_Matrix (Matrix *m, int rows, int cols)
-// {
-//     m->rows = rows;
-//     m->cols = cols;
-//     cudaMalloc (&(m->device_pointer), rows * cols * sizeof (double));
-//     m->host_pointer = (double *) malloc (rows * cols * sizeof (double));
-//     return;
-// }
 int main ()
 {
-    // int Width = N;
-    // int nx = Width;
-    // int ny = Width;
-    // int nxy = nx * ny;
-    // Matrix A (4, 4), B (4, 4), C (4, 4);
-    // A.init (), B.init (), C.init ();
-    // printf ("\033[1;4;31mMatrix A:\033[m\n");
-    // A.display ();
-    // // printf ("-----------------\n");
-    // // B.init ();
-    // printf ("\033[1;4;31mMatrix B:\033[m\n");
-    // B.display ();
-    // // printf ("-----------------\n");
-    // printf ("\033[1;4;31mMatrix C:\033[m\n");
-    // C.display ();
-    // Matrix D = A * B * C;
-    // printf ("\033[1;4;31mMatrix D:\033[m\n");
-    // D.display ();
-
-    // C.display ();
-    // allocate_Matrix (&A, 4, 8);
-    // transfer_Matrix_h2d (A);
-    // initialize_Matrix (A);
-    // transfer_Matrix_d2h (A);
-    // display_Matrix (A);
-
+    Matrix A (3, 4), X (3, 4);
+    A.init (), X.init ();
+    Matrix B = ~A;
+    printf ("\033[4;31mMatrix A:\033[m\n");
+    A.display ();
+    printf ("\033[4;31mMatrix B:\033[m\n");
+    B.display ();
+    Matrix C = A - X;
+    printf ("\033[4;31mMatrix C:\033[m\n");
+    C.display ();
     
-    // allocate_Matrix (&B, 8, 2);
-    // allocate_Matrix (&C, 2, 4);
-    
-    // initialize_Matrix <<<
-
-    // int nBytes = nxy * sizeof (float);
-    // printf ("Matrix size: nx %d ny %d\n", nx, ny);
-    
-    // float *h_A, *h_B, *h_C;
-    // h_A = (float *) (malloc (nBytes));
-    // h_B = (float *) malloc (nBytes);
-    // h_C = (float *) malloc (nBytes);
-    
-    // initialData (h_A, nxy);
-    // initialData (h_B, nxy);
-    
-    // float *d_MatA, *d_MatB, *d_MatC;
-    // cudaMalloc ((void **) &d_MatA, nBytes);
-    // cudaMalloc ((void **) &d_MatB, nBytes);
-    // cudaMalloc ((void **) &d_MatC, nBytes);
-
-
-    // cudaMemcpy ((void *) d_MatA, h_A, nBytes, cudaMemcpyHostToDevice);
-    // cudaMemcpy ((void *) d_MatB, h_B, nBytes, cudaMemcpyHostToDevice);
-
-    // int bdimx = 16;
-    // int bdimy = 16;
-
-    // dim3 block (bdimx, bdimy, 1);
-    // dim3 grid ((nx + block.x - 1) / block.x, (ny + block.y - 1) / block.y, 1);
-
-    // MatrixMulKernel <<<grid, block>>> (d_MatA, d_MatB, d_MatC, Width);
-    // cudaDeviceSynchronize ();
-
-    // cudaMemcpy (h_C, d_MatC, nBytes, cudaMemcpyDeviceToHost);
-
-    // printf ("Matrix A is=\n");
-    // displayMatrix (h_A, nx, ny, 2);
-    // printf ("Matrix B is=\n");
-    // displayMatrix (h_B, nx, ny, 2);
-    // printf ("The Product of Matrix A and Matrix B is=\n");
-    // displayMatrix (h_C, nx, ny, 5);
-
-    // cudaFree (d_MatA);
-    // cudaFree (d_MatB);
-    // cudaFree (d_MatC);
-
-    // free (h_A);
-    // free (h_B);
-    // free (h_C);
-
-    // cudaDeviceReset ();
-    // warpSize
-
+    cudaDeviceReset ();
     return 0;
-
 }
