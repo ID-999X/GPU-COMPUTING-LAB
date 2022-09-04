@@ -9,6 +9,7 @@
 struct Matrix;
 __global__ void init_GPU (double *p, int rows, int cols);
 __global__ void mul_GPU (double *m1, double *m2, double *p, int rows, int x, int cols);
+void init (double *p, int rows, int cols);
 struct Matrix
 {
     int rows, cols;
@@ -205,14 +206,23 @@ struct Matrix
     //     }
     //     return;
     // }
+    // void init ()
+    // {
+    //     dim3 block (1, 1, 1);
+    //     dim3 grid (rows, cols, 1);
+    //     init_GPU <<<grid, block>>> (device_pointer, rows, cols);
+    //     cudaDeviceSynchronize ();
+    //     // printf ("\033[31mhere\033[m");
+    //     D2H ();
+    //     // printf ("here");
+    //     return;
+    // }
     void init ()
     {
-        dim3 block (1, 1, 1);
-        dim3 grid (rows, cols, 1);
-        init_GPU <<<grid, block>>> (device_pointer, rows, cols);
-        cudaDeviceSynchronize ();
+        ::init (host_pointer, rows, cols);
+        // cudaDeviceSynchronize ();
         // printf ("\033[31mhere\033[m");
-        D2H ();
+        H2D ();
         // printf ("here");
         return;
     }
@@ -251,7 +261,14 @@ struct Matrix
 //     i += 0x12345678 * (seed + 1) + 1;
 //     return i;
 // }
-
+void init (double *p, int rows, int cols)
+{
+    for (int i = 0; i < rows * cols; i++)
+    {
+        p[i] = rand () % 21 - 10;
+    }
+    return;
+}
 __global__ void init_GPU (double *p, int rows, int cols)
 {
     int r = threadIdx.x + blockIdx.x * blockDim.x; // x = rows

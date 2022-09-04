@@ -52,7 +52,6 @@ struct Matrix
         host_pointer = M.host_pointer;
         M.rows = M.cols = 0;
         M.device_pointer = M.host_pointer = NULL;
-        // M.clear ();
         return;
     }
     Matrix operator = (Matrix &M)
