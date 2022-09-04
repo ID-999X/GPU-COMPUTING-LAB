@@ -260,7 +260,7 @@ __global__ void init_GPU (double *p, int rows, int cols)
     if (r < rows && c < cols)
     {
         // printf ("<%d>", r * M.cols + c);
-        p[r * cols + c] = ((double) (rand_GPU (r * cols + c) % 10));
+        p[r * cols + c] = ((double) (r * cols + c));
         // printf ("%lf ", M.device_pointer[r * M.cols + c]);
     }
     return;
@@ -320,17 +320,17 @@ __global__ void mul_GPU (double *m1, double *m2, double *p, int rows, int x, int
 //     m->host_pointer = (double *) malloc (rows * cols * sizeof (double));
 //     return;
 // }
-void srand_GPU (int seed)
-{
-    // cudaMemcpy (&SRAND_GPU, &seed, sizeof (int), cudaMemcpyHostToDevice);
-    // cudaMemcpyFromSymbol ()
-    void *a = NULL;
-    // cudaGetSymbolAddress (&a, "SRAND_GPU");
-    // printf ("srand: %p\n", a);
-    // cudaError_t err = cudaMemcpyToSymbol ("SRAND_GPU", &seed, sizeof (int));
-    // printf ("\"%s\"", cudaGetErrorString (err));
-    return;
-}
+// void srand_GPU (int seed)
+// {
+//     // cudaMemcpy (&SRAND_GPU, &seed, sizeof (int), cudaMemcpyHostToDevice);
+//     // cudaMemcpyFromSymbol ()
+//     void *a = NULL;
+//     // cudaGetSymbolAddress (&a, "SRAND_GPU");
+//     // printf ("srand: %p\n", a);
+//     // cudaError_t err = cudaMemcpyToSymbol ("SRAND_GPU", &seed, sizeof (int));
+//     // printf ("\"%s\"", cudaGetErrorString (err));
+//     return;
+// }
 int main ()
 {
     // SRAND_GPU = time (NULL);
