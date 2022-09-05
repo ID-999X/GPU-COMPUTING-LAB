@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <cuda_runtime.h>
-#define N 8
+#define N 3
 __global__ void MatrixMulKernel (float *MatA, float *MatB, float *MatC, int Width)
 {
     int Row = blockIdx.y * blockDim.y + threadIdx.y;
@@ -92,7 +92,6 @@ int main ()
     free (h_C);
 
     cudaDeviceReset ();
-
     return 0;
 
 }
