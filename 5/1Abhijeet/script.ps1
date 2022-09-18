@@ -1,9 +1,9 @@
-nvcc -I. -dc matrix.cu -o matrix.obj 
+nvcc -I. -dc lib.cu -o lib.obj 
 nvcc -I. -dc main.cu -o main.obj 
-nvcc matrix.obj main.obj
-rm matrix.obj 
+nvcc lib.obj main.obj
+rm lib.obj 
 rm main.obj
-# nvcc main.cu matrix.cu
+# nvcc main.cu lib.cu
 if ($?)
 {
     .\a.exe

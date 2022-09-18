@@ -26,6 +26,7 @@ void distanceArray (float *out, float *in, float ref, int len)
     cudaMemcpy (d_in, in, len * sizeof (float), cudaMemcpyHostToDevice);
     // launch kernel to compute and store distance values
     distanceKernel <<<len / TPB, TPB>>> (d_out, d_in, ref);
+    cudaDeviceSynchronize ();
     cudaMemcpy (out, d_out, len * sizeof (float), cudaMemcpyDeviceToHost);
     // free the memory allocated for device arrays
     cudaFree (d_in);

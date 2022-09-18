@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <cuda_runtime.h>
-#include "matrix.cuh"
+#include "Matrix.cuh"
 // macros:
 // #define widthField 0
 #define precisionField 0
